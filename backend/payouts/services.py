@@ -99,4 +99,17 @@ def create_payout_atomic(merchant_id, bank_account_id, amount_paise: int) -> Pay
         payout=payout,
     )
 
+    # Queue processing only after DB transaction commits — avoids task reading
+    # a payout row that doesn't exist yet if the transaction rolls back.
+    payout_id = str(payout.id)
+    transaction.on_commit(
+        lambda: _enqueue_process_payout(payout_id)
+    )
+
     return payout
+
+
+def _enqueue_process_payout(payout_id: str) -> None:
+    # Lazy import breaks the services ↔ tasks circular dependency.
+    from payouts.tasks import process_payout  # noqa: PLC0415
+    process_payout.delay(payout_id)

@@ -87,3 +87,10 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "UTC"
+
+CELERY_BEAT_SCHEDULE = {
+    "retry-stuck-payouts": {
+        "task": "payouts.retry_stuck_payouts",
+        "schedule": 15.0,
+    },
+}

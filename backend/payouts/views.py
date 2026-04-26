@@ -1,5 +1,7 @@
-from django.shortcuts import get_object_or_404
+import json
 
+from django.shortcuts import get_object_or_404
+from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -84,9 +86,8 @@ class MerchantPayoutListCreateView(APIView):
             response_data = PayoutSerializer(payout).data
             status_code = 201
 
-        # Store response so future replays return the same thing
         idem.response_status_code = status_code
-        idem.response_body = response_data
+        idem.response_body = json.loads(JSONRenderer().render(response_data))
         if payout is not None:
             idem.payout = payout
         idem.save(update_fields=["response_status_code", "response_body", "payout_id"])
