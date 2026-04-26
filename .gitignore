@@ -38,7 +38,7 @@ staticfiles/
 media/
 
 # Celery
-celerybeat-schedule
+celerybeat-schedule*
 celerybeat.pid
 
 # Node / React / Next.js

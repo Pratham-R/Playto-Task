@@ -1,19 +1,33 @@
-# Playto Payout Engine
+# Playto Payout Engine 🚀
 
-Cross-border payout engine for Indian merchants. Merchants accumulate balance from simulated international payments and withdraw to Indian bank accounts.
+A robust cross-border payout engine for Indian merchants. This platform enables merchants to manage balances accumulated from international payments and securely withdraw them to Indian bank accounts using a double-entry ledger system.
 
-## Stack
-- **Backend**: Django 5.2 + DRF, PostgreSQL, Celery + Redis
-- **Frontend**: React + Vite + Tailwind
+## 🏗 Architecture & Features
 
-## Setup
+- **Double-Entry Ledger**: Every transaction is tracked with `CREDIT`, `HOLD`, and `RELEASE` entries to ensure 100% financial accuracy.
+- **Atomic Concurrency Control**: Uses PostgreSQL row-level locking (`select_for_update`) to prevent double-spending or balance inconsistencies.
+- **Idempotent Payouts**: Guaranteed "exactly-once" processing using merchant-supplied idempotency keys.
+- **State Machine Workflow**: Payouts follow a strict lifecycle (`PENDING` → `PROCESSING` → `COMPLETED` / `FAILED`).
+- **Background Processing**: Long-running payout simulations are handled asynchronously via Celery and Redis.
 
-### Prerequisites
+## 💻 Tech Stack
+
+- **Backend**: Django 5.x + Django REST Framework, PostgreSQL
+- **Async Tasks**: Celery + Redis
+- **Frontend**: Next.js 14 (App Router) + Tailwind CSS
+- **Testing**: Pytest for backend concurrency and logic validation
+
+---
+
+## 🚀 Getting Started
+
+### 1. Prerequisites
 - Python 3.12+
+- Node.js 18+
 - PostgreSQL
 - Redis
 
-### Backend
+### 2. Backend Setup
 
 ```bash
 cd backend
@@ -25,42 +39,58 @@ pip install -r requirements.txt
 cp .env.example .env
 # Edit .env — set DATABASE_URL, REDIS_URL
 
-# Create database
+# Setup Database
 createdb playto
-
-# Run migrations
 python manage.py migrate
 
-# Seed test data (3 merchants, credit history)
+# Seed Test Data (3 merchants with varying balances)
 python manage.py seed
 
-# Start dev server
+# Start Services (in separate terminals)
 python manage.py runserver
-
-# Start Celery worker
 celery -A playto worker -l info
-
-# Start Celery beat
 celery -A playto beat -l info
 ```
 
-### Running tests
+### 3. Frontend Setup
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+---
+
+## 🧪 Testing
+
+The backend includes comprehensive tests for core logic and concurrency.
 
 ```bash
 cd backend
 pytest
-# single test file
+
+# Test concurrency specifically (race conditions)
 pytest payouts/tests/test_concurrency.py -v
 ```
 
-## Merchant test data (seeded)
+---
 
-| Merchant | Balance | Purpose |
+## 📊 Merchant Test Data (Seeded)
+
+| Merchant | Initial Balance | Use Case |
 |---|---|---|
-| Acme Studio | ₹50,000 | General testing |
-| Lotus Freelance | ₹1,20,000 | Large balance testing |
-| Banyan Agency | ₹1,000 | Concurrency test (two ₹600 requests) |
+| **Acme Studio** | ₹50,000 | General workflow testing |
+| **Lotus Freelance** | ₹1,20,000 | Large withdrawal testing |
+| **Banyan Agency** | ₹1,000 | Concurrency / Race-condition testing |
 
-## Architecture notes
+---
 
-See `EXPLAINER.md` for the decisions behind the ledger model, locking strategy, idempotency design, and state machine enforcement.
+## 📖 Project Documentation
+
+For a deeper dive into specific implementation decisions (Ledger vs. Balance, Locking strategies, Idempotency design), please refer to the `EXPLAINER.md`.
+
