@@ -14,7 +14,7 @@ echo "--- Starting Celery Beat ---"
 celery -A playto beat -l info &
 
 echo "--- Seeding Data ---"
-python seed_merchants.py
+python manage.py seed
 python manage.py shell -c "from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin', 'admin@example.com', 'admin123')"
 
 echo "--- Starting Gunicorn ---"
