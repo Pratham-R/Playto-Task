@@ -49,7 +49,6 @@ class LedgerEntry(models.Model):
     )
     kind = models.CharField(max_length=10, choices=Kind.choices)
     amount_paise = models.BigIntegerField()
-    # null for CREDIT rows; links HOLD/RELEASE to the triggering payout
     payout = models.ForeignKey(
         "payouts.PayoutRequest",
         null=True,

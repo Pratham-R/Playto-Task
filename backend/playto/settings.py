@@ -81,6 +81,10 @@ REST_FRAMEWORK = {
 
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 
+if not DEBUG:
+    _origins = config("CORS_ALLOWED_ORIGINS", default="")
+    CORS_ALLOWED_ORIGINS = [o.strip() for o in _origins.split(",") if o.strip()]
+
 CELERY_BROKER_URL = config("REDIS_URL", default="redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = config("REDIS_URL", default="redis://localhost:6379/0")
 CELERY_ACCEPT_CONTENT = ["json"]

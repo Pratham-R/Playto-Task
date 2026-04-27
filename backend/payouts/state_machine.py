@@ -1,6 +1,5 @@
 from payouts.models import PayoutRequest
 
-# Only these moves are legal. Everything else is rejected.
 _ALLOWED: dict[str, set[str]] = {
     PayoutRequest.Status.PENDING: {PayoutRequest.Status.PROCESSING},
     PayoutRequest.Status.PROCESSING: {

@@ -29,9 +29,7 @@ class MerchantQuerySet(models.QuerySet):
                 zero,
             ),
         ).annotate(
-            # available = credits − net holds (holds not yet released)
             available_paise=F("credit_total") - F("hold_total") + F("release_total"),
-            # held = holds still outstanding (pending/processing payouts)
             held_paise=F("hold_total") - F("release_total"),
         )
 

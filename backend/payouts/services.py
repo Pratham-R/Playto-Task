@@ -34,7 +34,7 @@ def get_or_create_idem_key(merchant_id, key_str: str, fp: str):
             defaults={"request_fingerprint": fp},
         )
     except IntegrityError:
-        # Two simultaneous first-time requests — loser retries the read.
+
         idem = IdempotencyKey.objects.get(merchant_id=merchant_id, key=key_str)
         created = False
 
@@ -99,8 +99,6 @@ def create_payout_atomic(merchant_id, bank_account_id, amount_paise: int) -> Pay
         payout=payout,
     )
 
-    # Queue processing only after DB transaction commits — avoids task reading
-    # a payout row that doesn't exist yet if the transaction rolls back.
     payout_id = str(payout.id)
     transaction.on_commit(
         lambda: _enqueue_process_payout(payout_id)
@@ -110,6 +108,5 @@ def create_payout_atomic(merchant_id, bank_account_id, amount_paise: int) -> Pay
 
 
 def _enqueue_process_payout(payout_id: str) -> None:
-    # Lazy import breaks the services ↔ tasks circular dependency.
-    from payouts.tasks import process_payout  # noqa: PLC0415
+    from payouts.tasks import process_payout
     process_payout.delay(payout_id)

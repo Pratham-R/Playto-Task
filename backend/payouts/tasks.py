@@ -18,7 +18,6 @@ def process_payout(self, payout_id: str) -> None:
                            → FAILED     (20 % — releases held funds atomically)
       hangs in PROCESSING               (10 % — retry_stuck_payouts re-queues it)
     """
-    # ── Phase 1: claim the payout (PENDING → PROCESSING) ─────────────────────
     with transaction.atomic():
         try:
             payout = (
@@ -29,7 +28,6 @@ def process_payout(self, payout_id: str) -> None:
         except PayoutRequest.DoesNotExist:
             return
 
-        # Already finalized by another worker or retry path
         if payout.status not in (
             PayoutRequest.Status.PENDING,
             PayoutRequest.Status.PROCESSING,
@@ -43,14 +41,12 @@ def process_payout(self, payout_id: str) -> None:
         payout.attempts += 1
         payout.save(update_fields=["status", "processing_started_at", "attempts", "updated_at"])
 
-    # ── Phase 2: simulate bank settlement (outside lock — models real I/O) ───
     roll = random.random()
 
     if roll < 0.70:
         _complete_payout(payout_id)
     elif roll < 0.90:
         _fail_payout(payout_id, reason="Bank declined the transfer")
-    # else: hang — payout stays PROCESSING; retry_stuck_payouts handles it
 
 
 def _complete_payout(payout_id: str) -> None:
@@ -62,7 +58,6 @@ def _complete_payout(payout_id: str) -> None:
         try:
             transition(payout, PayoutRequest.Status.COMPLETED)
         except InvalidTransition:
-            # Another worker already finalized — nothing to do
             return
         payout.save(update_fields=["status", "updated_at"])
 
@@ -80,7 +75,6 @@ def _fail_payout(payout_id: str, reason: str = "") -> None:
             return
         payout.last_error = reason
         payout.save(update_fields=["status", "last_error", "updated_at"])
-        # RELEASE entry atomically restores funds to available balance
         LedgerEntry.objects.create(
             merchant_id=payout.merchant_id,
             kind=LedgerEntry.Kind.RELEASE,
@@ -111,7 +105,6 @@ def retry_stuck_payouts() -> None:
 
         for payout in stuck:
             if payout.attempts >= 3:
-                # Max attempts exhausted — fail and release funds
                 transition(payout, PayoutRequest.Status.FAILED)
                 payout.last_error = "Max retry attempts (3) exceeded"
                 payout.save(update_fields=["status", "last_error", "updated_at"])
@@ -122,16 +115,12 @@ def retry_stuck_payouts() -> None:
                     payout=payout,
                 )
             else:
-                # Exponential backoff: 2^attempts seconds (2 s, 4 s, 8 s)
                 backoff = 2 ** payout.attempts
-                # Push the clock forward so this payout isn't re-scanned before
-                # the retry task has a chance to run.
                 payout.processing_started_at = timezone.now() + timedelta(
                     seconds=backoff + 30
                 )
                 payout.save(update_fields=["processing_started_at"])
 
-                # Queue inside on_commit so task is only enqueued after DB commits
                 _schedule_retry(str(payout.id), backoff)
 
 
