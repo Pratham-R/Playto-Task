@@ -80,6 +80,20 @@ class Command(BaseCommand):
         now = timezone.now()
 
         with transaction.atomic():
+
+            seed_names = [d["name"] for d in SEED_DATA]
+            fixed_ids = [d["id"] for d in SEED_DATA]
+            
+            duplicates = Merchant.objects.filter(name__in=seed_names).exclude(id__in=fixed_ids)
+            if duplicates.exists():
+                self.stdout.write(self.style.WARNING(f"Cleaning up {duplicates.count()} duplicate merchants..."))
+                from payouts.models import PayoutRequest, IdempotencyKey
+                IdempotencyKey.objects.filter(merchant__in=duplicates).delete()
+                PayoutRequest.objects.filter(merchant__in=duplicates).delete()
+                LedgerEntry.objects.filter(merchant__in=duplicates).delete()
+                BankAccount.objects.filter(merchant__in=duplicates).delete()
+                duplicates.delete()
+
             for data in SEED_DATA:
                 merchant, created = Merchant.objects.update_or_create(
                     id=data["id"],

@@ -81,9 +81,17 @@ REST_FRAMEWORK = {
 
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 
+from corsheaders.defaults import default_headers
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "idempotency-key",
+]
+
 if not DEBUG:
     _origins = config("CORS_ALLOWED_ORIGINS", default="")
-    CORS_ALLOWED_ORIGINS = [o.strip() for o in _origins.split(",") if o.strip()]
+    if _origins:
+        CORS_ALLOWED_ORIGINS = [o.strip() for o in _origins.split(",") if o.strip()]
+    else:
+        CORS_ALLOW_ALL_ORIGINS = True
 
 CELERY_BROKER_URL = config("REDIS_URL", default="redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = config("REDIS_URL", default="redis://localhost:6379/0")
